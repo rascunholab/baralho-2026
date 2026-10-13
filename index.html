@@ -4024,6 +4024,7 @@ window.BARALHO_FOTOS = {
 
   var KIND_SHORT = { oficial: "Oficial", imprensa: "Notícia", checagem: "Checagem", opiniao: "Opinião" };
   var ORDEM_CAND = ["flavio", "lula"]; // ordem alfabética: nenhum candidato é favorecido na tela
+  var MIN_CARTAS = 6; // 3 de cada candidato
   var ANS_LABEL = { bom: "Concordo", ruim: "Não concordo", pular: "Não sei" };
   /* Rótulos por tipo de carta: o que a pessoa FEZ é “bom ou ruim”;
      frases e propostas são “concordo ou não concordo”. */
@@ -4528,16 +4529,11 @@ window.BARALHO_FOTOS = {
         el("li", null, [el("b", { text: String(V.porCandidato) }), " de cada candidato"]),
         el("li", null, ["Conferido em ", el("b", { text: D.versao })])
       ]),
-      el("div", { class: "actions four" }, [
+      el("div", { class: "actions three" }, [
         el("button", { class: "action", type: "button", onclick: telaConfigurar }, [
           el("span", { class: "ico", "aria-hidden": "true", text: "🃏" }),
           el("strong", { text: "Jogar" }),
           el("span", { class: "d", text: "Escolha o que julgar e quantas cartas quer ver." })
-        ]),
-        el("button", { class: "action", type: "button", onclick: telaEscolher }, [
-          el("span", { class: "ico", "aria-hidden": "true", text: "🔎" }),
-          el("strong", { text: "Escolher uma carta" }),
-          el("span", { class: "d", text: "Veja todas as frases e escolha só uma." })
         ]),
         el("button", { class: "action", type: "button", onclick: telaDueloInicio }, [
           el("span", { class: "ico", "aria-hidden": "true", text: "⚖️" }),
@@ -4572,12 +4568,12 @@ window.BARALHO_FOTOS = {
     var sub = el("div", { class: "count-sub" });
     var pillF = el("div", { class: "pill pill-flavio" });
     var pillL = el("div", { class: "pill pill-lula" });
-    var slider = el("input", { class: "range", type: "range", min: "2", max: "2", step: "2", value: "2", "aria-label": "Quantidade de cartas (só números pares)" });
+    var slider = el("input", { class: "range", type: "range", min: String(MIN_CARTAS), max: String(MIN_CARTAS), step: "2", value: String(MIN_CARTAS), "aria-label": "Quantidade de cartas (só números pares; mínimo " + MIN_CARTAS + ")" });
     var chipBox = el("div", { class: "presets" });
     var jairBox = el("div", { class: "jairbox" });
     var btnIniciar = el("button", { class: "btn btn-primary", type: "button", text: "Começar →", onclick: function () { iniciarPartida(cfg.n, cfg.cats, cfg.jair); } });
     var painelNum = el("div", null, [out, sub, slider, chipBox, el("div", { class: "split" }, [pillF, pillL])]);
-    var aviso = el("p", { class: "errorbox", role: "alert", style: "display:none", text: "Não há cartas dos dois candidatos nesta combinação. Escolha mais um tipo." });
+    var aviso = el("p", { class: "errorbox", role: "alert", style: "display:none" });
 
     function desenharCats() {
       clear(catBox);
@@ -4622,7 +4618,8 @@ window.BARALHO_FOTOS = {
       desenharJair();
       var L = limites(cfg.cats);
       var max = L.max;
-      if (max < 2) {
+      if (max < MIN_CARTAS) {
+        aviso.textContent = "Com esta escolha há só " + max + " cartas, e o jogo precisa de no mínimo " + MIN_CARTAS + " (3 de cada candidato). Marque mais um tipo de carta.";
         aviso.style.display = "";
         painelNum.style.display = "none";
         btnIniciar.setAttribute("disabled", "");
@@ -4632,7 +4629,7 @@ window.BARALHO_FOTOS = {
       painelNum.style.display = "";
       btnIniciar.removeAttribute("disabled");
       if (cfg.n > max) { cfg.n = max; }
-      if (cfg.n < 2) { cfg.n = 2; }
+      if (cfg.n < MIN_CARTAS) { cfg.n = MIN_CARTAS; }
       if (cfg.n % 2) { cfg.n -= 1; }
       slider.setAttribute("max", String(max));
       slider.value = String(cfg.n);
@@ -4642,7 +4639,7 @@ window.BARALHO_FOTOS = {
       add(pillF, [el("i", { text: D.candidatos.flavio.nome + ": " }), String(cfg.n / 2)]);
       add(pillL, [el("i", { text: D.candidatos.lula.nome + ": " }), String(cfg.n / 2)]);
       clear(chipBox);
-      [6, 10, 20, 30, 40, max].filter(function (v, i, a) { return v <= max && a.indexOf(v) === i; }).forEach(function (v) {
+      [MIN_CARTAS, 10, 20, 30, 40, max].filter(function (v, i, a) { return v <= max && a.indexOf(v) === i; }).forEach(function (v) {
         chipBox.appendChild(el("button", { class: "chip", type: "button", "aria-pressed": v === cfg.n ? "true" : "false", text: v === max ? "Todas (" + v + ")" : String(v), onclick: function () { cfg.n = v; atualizar(); } }));
       });
       info.textContent = "Cada candidato tem até " + (max / 2) + " cartas nesta escolha.";
@@ -4653,7 +4650,7 @@ window.BARALHO_FOTOS = {
       el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaInicio, text: "← Início" })]),
       el("div", { class: "panel" }, [
         el("h2", { id: "titulo", text: "O que você quer julgar?" }),
-        el("p", { text: "Marque um ou mais tipos. Metade das cartas é de cada candidato, por isso o número de cartas é sempre par." }),
+        el("p", { text: "Marque um ou mais tipos. Metade das cartas é de cada candidato, por isso o número é sempre par. O mínimo é de " + MIN_CARTAS + " cartas (" + (MIN_CARTAS / 2) + " de cada)." }),
         catBox, aviso, jairBox,
         el("h3", { class: "sub-h", text: "Quantas cartas?" }),
         painelNum, info,
@@ -4695,6 +4692,8 @@ window.BARALHO_FOTOS = {
 
   function iniciarPartida(n, cats, nJair) {
     if (V.erros.length) { telaInicio(); return; }
+    n = Math.max(MIN_CARTAS, n - (n % 2));
+    if (n > limites(cats).max) { telaConfigurar(); return; }
     S.modo = "partida";
     S.fila = montarFila(n, cats, nJair);
     S.i = 0;
@@ -4723,37 +4722,23 @@ window.BARALHO_FOTOS = {
     var carta = S.atual.carta;
     var cardEl = document.getElementById("carta");
     S.resp.push({ carta: carta, v: v });
-    var ultima = S.modo === "partida" && S.i === S.fila.length - 1;
+    var ultima = S.i === S.fila.length - 1;
     /* Barra fixa no TOPO com o botão de continuar: quem leu a revelação não precisa
        descer a página inteira para seguir. Há uma cópia no fim, para quem leu tudo. */
-    var sortear = function () { var pc = shuffle(D.cartas)[0]; jogarUma(pc.id); };
-    var textoTopo = S.modo === "partida" ? "Carta " + (S.i + 1) + " de " + S.fila.length : "Carta escolhida";
-    var rotuloProx = S.modo === "partida" ? (ultima ? "Ver meu resultado →" : "Próxima carta →") : "Sortear uma carta";
-    var acaoProx = S.modo === "partida" ? proxima : sortear;
+    var rotuloProx = ultima ? "Ver meu resultado →" : "Próxima carta →";
     var barra = el("div", { class: "nextbar", id: "barra-proxima" }, [
-      S.modo === "partida"
-        ? el("span", { class: "num", text: textoTopo })
-        : el("button", { class: "btn btn-light btn-sm", type: "button", text: "← Outra carta", onclick: telaEscolher }),
-      el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: rotuloProx, onclick: acaoProx })
+      el("span", { class: "num", text: "Carta " + (S.i + 1) + " de " + S.fila.length }),
+      el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: rotuloProx, onclick: proxima })
     ]);
     var velha = document.getElementById("barra-proxima");
     if (velha && velha.parentNode) { velha.parentNode.removeChild(velha); }
     if (cardEl.parentNode) { cardEl.parentNode.insertBefore(barra, cardEl); }
     girar(cardEl, function (host) {
       host.appendChild(blocoRevelacao(carta, v, { mostrarFala: true }));
-      var acoes;
-      if (S.modo === "partida") {
-        acoes = el("div", { class: "nextrow" }, [
-          el("span"),
-          el("button", { class: "btn btn-primary", type: "button", text: rotuloProx, onclick: acaoProx })
-        ]);
-      } else {
-        acoes = el("div", { class: "nextrow" }, [
-          el("button", { class: "btn btn-light", type: "button", text: "← Escolher outra carta", onclick: telaEscolher }),
-          el("button", { class: "btn btn-primary", type: "button", text: "Sortear uma carta", onclick: sortear })
-        ]);
-      }
-      host.appendChild(acoes);
+      host.appendChild(el("div", { class: "nextrow" }, [
+        el("span"),
+        el("button", { class: "btn btn-primary", type: "button", text: rotuloProx, onclick: proxima })
+      ]));
       var quem = host.querySelector("#quem");
       if (quem) { quem.focus({ preventScroll: false }); }
     });
@@ -4761,80 +4746,6 @@ window.BARALHO_FOTOS = {
   }
 
   function proxima() { S.i++; mostrarCarta(); }
-
-  /* ---- escolher uma carta ---- */
-  function telaEscolher() {
-    S.modo = "unica";
-    if (!S.ordemNav) { S.ordemNav = shuffle(D.cartas); }
-    var busca = el("input", { class: "search", type: "search", placeholder: "Procurar uma palavra (ex.: saúde, escola, imposto)…", "aria-label": "Procurar nas frases", value: S.busca });
-    var filtrosCat = el("div", { class: "filters", role: "group", "aria-label": "Filtrar por tipo" });
-    var filtros = el("div", { class: "filters", role: "group", "aria-label": "Filtrar por tema" });
-    var grade = el("div", { class: "grid", "aria-live": "polite" });
-    var contador = el("p", { class: "legend" });
-
-    function chip(ativo, rotulo, aoClicar) {
-      return el("button", { class: "chip", type: "button", "aria-pressed": ativo ? "true" : "false", text: rotulo, onclick: aoClicar });
-    }
-    function redesenharFiltros() {
-      clear(filtrosCat); clear(filtros);
-      add(filtrosCat, chip(S.filtroCat === "todas", "Todos os tipos", function () { S.filtroCat = "todas"; redesenharFiltros(); desenhar(); }));
-      CAT_KEYS.forEach(function (k) { if (CATS[k]) { add(filtrosCat, chip(S.filtroCat === k, CATS[k].icone + " " + CATS[k].curto, function () { S.filtroCat = k; redesenharFiltros(); desenhar(); })); } });
-      add(filtros, chip(S.filtro === "todos", "Todos os temas", function () { S.filtro = "todos"; redesenharFiltros(); desenhar(); }));
-      Object.keys(D.temas).forEach(function (k) { add(filtros, chip(S.filtro === k, D.temas[k].nome, function () { S.filtro = k; redesenharFiltros(); desenhar(); })); });
-    }
-    function desenhar() {
-      clear(grade);
-      var q = norm(S.busca.trim());
-      var lista2 = S.ordemNav.filter(function (c) {
-        if (S.filtroCat !== "todas" && catDe(c) !== S.filtroCat) { return false; }
-        if (S.filtro !== "todos" && c.tema !== S.filtro) { return false; }
-        if (q && norm(c.texto + " " + D.temas[c.tema].nome).indexOf(q) === -1) { return false; }
-        return true;
-      });
-      contador.textContent = lista2.length + " de " + D.cartas.length + " cartas. A ordem é sorteada e o nome de quem disse fica escondido até você julgar.";
-      if (!lista2.length) { add(grade, el("p", { class: "empty", text: "Nenhuma carta encontrada." })); return; }
-      lista2.forEach(function (c) {
-        var cat = CATS[catDe(c)];
-        add(grade, el("button", { class: "pick", type: "button", onclick: function () { jogarUma(c.id); } }, [
-          el("span", { class: "s", text: c.texto }),
-          el("span", { class: "foot" }, [
-            el("span", { class: "tag", text: "#" + D.temas[c.tema].nome }),
-            el("span", { class: "suit" + (ehVermelho(c) ? " red" : ""), "aria-hidden": "true", text: (cat ? cat.icone + " " : "") + naipe(c) })
-          ])
-        ]));
-      });
-    }
-    busca.addEventListener("input", function () { S.busca = busca.value; desenhar(); });
-    redesenharFiltros();
-    var raiz = el("section", { class: "screen" }, [
-      el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaInicio, text: "← Início" })]),
-      el("div", { class: "panel" }, [
-        el("h2", { id: "titulo", text: "Escolha uma carta" }),
-        el("p", { text: "Você vê só o texto. Escolha uma carta, responda e descubra quem foi." }),
-        el("div", { class: "nextrow", style: "margin:8px 0 12px" }, [
-          el("span"),
-          el("button", { class: "btn btn-primary btn-sm", type: "button", text: "🎲 Sortear uma para mim", onclick: function () { var p = shuffle(D.cartas)[0]; jogarUma(p.id); } })
-        ]),
-        busca, filtrosCat, filtros, contador, grade
-      ])
-    ]);
-    montar(raiz, "#titulo");
-    desenhar();
-  }
-
-  function jogarUma(id) {
-    var carta = porId(id);
-    if (!carta) { telaEscolher(); return; }
-    S.modo = "unica";
-    S.atual = { carta: carta, respondida: false };
-    var card = cartaFrente(carta, "A", responder);
-    var raiz = el("section", { class: "screen" }, [
-      el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaEscolher, text: "← Voltar à lista" })]),
-      el("div", { class: "stage" }, [card])
-    ]);
-    montar(raiz, "#pergunta", true);
-    anunciar("Carta escolhida: " + carta.texto);
-  }
 
   /* ---- painel: as 36 promessas de Lula, com a situação de cada uma ---- */
   function blocoListaLula(T) {
