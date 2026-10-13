@@ -4529,11 +4529,16 @@ window.BARALHO_FOTOS = {
         el("li", null, [el("b", { text: String(V.porCandidato) }), " de cada candidato"]),
         el("li", null, ["Conferido em ", el("b", { text: D.versao })])
       ]),
-      el("div", { class: "actions three" }, [
+      el("div", { class: "actions four" }, [
         el("button", { class: "action", type: "button", onclick: telaConfigurar }, [
           el("span", { class: "ico", "aria-hidden": "true", text: "🃏" }),
           el("strong", { text: "Jogar" }),
           el("span", { class: "d", text: "Escolha o que julgar e quantas cartas quer ver." })
+        ]),
+        el("button", { class: "action", type: "button", onclick: telaTodasCartas }, [
+          el("span", { class: "ico", "aria-hidden": "true", text: "🔎" }),
+          el("strong", { text: "Ver todas as cartas" }),
+          el("span", { class: "d", text: "Veja a lista de cartas, sem os nomes, e escolha qual quer julgar." })
         ]),
         el("button", { class: "action", type: "button", onclick: telaDueloInicio }, [
           el("span", { class: "ico", "aria-hidden": "true", text: "⚖️" }),
@@ -4722,13 +4727,15 @@ window.BARALHO_FOTOS = {
     var carta = S.atual.carta;
     var cardEl = document.getElementById("carta");
     S.resp.push({ carta: carta, v: v });
-    var ultima = S.i === S.fila.length - 1;
+    var unica = S.modo === "unica";
+    var ultima = !unica && S.i === S.fila.length - 1;
     /* Barra fixa no TOPO com o botão de continuar: quem leu a revelação não precisa
        descer a página inteira para seguir. Há uma cópia no fim, para quem leu tudo. */
-    var rotuloProx = ultima ? "Ver meu resultado →" : "Próxima carta →";
+    var rotuloProx = unica ? "← Voltar à lista" : (ultima ? "Ver meu resultado →" : "Próxima carta →");
+    var acaoProx = unica ? telaTodasCartas : proxima;
     var barra = el("div", { class: "nextbar", id: "barra-proxima" }, [
-      el("span", { class: "num", text: "Carta " + (S.i + 1) + " de " + S.fila.length }),
-      el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: rotuloProx, onclick: proxima })
+      el("span", { class: "num", text: unica ? "Carta escolhida" : "Carta " + (S.i + 1) + " de " + S.fila.length }),
+      el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: rotuloProx, onclick: acaoProx })
     ]);
     var velha = document.getElementById("barra-proxima");
     if (velha && velha.parentNode) { velha.parentNode.removeChild(velha); }
@@ -4737,7 +4744,7 @@ window.BARALHO_FOTOS = {
       host.appendChild(blocoRevelacao(carta, v, { mostrarFala: true }));
       host.appendChild(el("div", { class: "nextrow" }, [
         el("span"),
-        el("button", { class: "btn btn-primary", type: "button", text: rotuloProx, onclick: proxima })
+        el("button", { class: "btn btn-primary", type: "button", text: rotuloProx, onclick: acaoProx })
       ]));
       var quem = host.querySelector("#quem");
       if (quem) { quem.focus({ preventScroll: false }); }
@@ -4746,6 +4753,76 @@ window.BARALHO_FOTOS = {
   }
 
   function proxima() { S.i++; mostrarCarta(); }
+
+  /* ---- ver todas as cartas (sem sorteio: o jogador escolhe qual quer julgar) ---- */
+  function telaTodasCartas() {
+    S.modo = "unica";
+    if (!S.ordemNav) { S.ordemNav = shuffle(candidatos().concat(cartasJair())); }
+    var busca = el("input", { class: "search", type: "search", placeholder: "Procurar uma palavra (ex.: saúde, escola, imposto)…", "aria-label": "Procurar nas cartas", value: S.busca });
+    var filtrosCat = el("div", { class: "filters", role: "group", "aria-label": "Filtrar por tipo" });
+    var filtros = el("div", { class: "filters", role: "group", "aria-label": "Filtrar por tema" });
+    var grade = el("div", { class: "grid", "aria-live": "polite" });
+    var contador = el("p", { class: "legend" });
+
+    function chip(ativo, rotulo, aoClicar) {
+      return el("button", { class: "chip", type: "button", "aria-pressed": ativo ? "true" : "false", text: rotulo, onclick: aoClicar });
+    }
+    function redesenharFiltros() {
+      clear(filtrosCat); clear(filtros);
+      add(filtrosCat, chip(S.filtroCat === "todas", "Todos os tipos", function () { S.filtroCat = "todas"; redesenharFiltros(); desenhar(); }));
+      CAT_KEYS.forEach(function (k) { if (CATS[k]) { add(filtrosCat, chip(S.filtroCat === k, CATS[k].icone + " " + CATS[k].curto, function () { S.filtroCat = k; redesenharFiltros(); desenhar(); })); } });
+      add(filtros, chip(S.filtro === "todos", "Todos os temas", function () { S.filtro = "todos"; redesenharFiltros(); desenhar(); }));
+      Object.keys(D.temas).forEach(function (k) { add(filtros, chip(S.filtro === k, D.temas[k].nome, function () { S.filtro = k; redesenharFiltros(); desenhar(); })); });
+    }
+    function desenhar() {
+      clear(grade);
+      var q = norm(S.busca.trim());
+      var itens = S.ordemNav.filter(function (c) {
+        if (S.filtroCat !== "todas" && catDe(c) !== S.filtroCat) { return false; }
+        if (S.filtro !== "todos" && c.tema !== S.filtro) { return false; }
+        if (q && norm(c.texto + " " + D.temas[c.tema].nome).indexOf(q) === -1) { return false; }
+        return true;
+      });
+      contador.textContent = itens.length + " de " + S.ordemNav.length + " cartas. A ordem é misturada e o nome de quem fez ou disse fica escondido até você responder.";
+      if (!itens.length) { add(grade, el("p", { class: "empty", text: "Nenhuma carta encontrada." })); return; }
+      itens.forEach(function (c) {
+        var cat = CATS[catDe(c)];
+        add(grade, el("button", { class: "pick", type: "button", onclick: function () { jogarUma(c.id); } }, [
+          el("span", { class: "s", text: c.texto }),
+          el("span", { class: "foot" }, [
+            el("span", { class: "tag", text: "#" + D.temas[c.tema].nome }),
+            el("span", { class: "suit" + (ehVermelho(c) ? " red" : ""), "aria-hidden": "true", text: (cat ? cat.icone + " " : "") + naipe(c) })
+          ])
+        ]));
+      });
+    }
+    busca.addEventListener("input", function () { S.busca = busca.value; desenhar(); });
+    redesenharFiltros();
+    var raiz = el("section", { class: "screen" }, [
+      el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaInicio, text: "← Início" })]),
+      el("div", { class: "panel" }, [
+        el("h2", { id: "titulo", text: "Todas as cartas" }),
+        el("p", { text: "Veja todas as cartas, sem o nome de quem fez ou disse. Toque numa para dar a sua opinião e só depois descobrir quem foi." }),
+        busca, filtrosCat, filtros, contador, grade
+      ])
+    ]);
+    montar(raiz, "#titulo");
+    desenhar();
+  }
+
+  function jogarUma(id) {
+    var carta = porId(id);
+    if (!carta) { telaTodasCartas(); return; }
+    S.modo = "unica";
+    S.atual = { carta: carta, respondida: false };
+    var card = cartaFrente(carta, "A", responder);
+    var raiz = el("section", { class: "screen" }, [
+      el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaTodasCartas, text: "← Voltar à lista" })]),
+      el("div", { class: "stage" }, [card])
+    ]);
+    montar(raiz, "#pergunta", true);
+    anunciar("Carta escolhida: " + carta.texto);
+  }
 
   /* ---- painel: as 36 promessas de Lula, com a situação de cada uma ---- */
   function blocoListaLula(T) {

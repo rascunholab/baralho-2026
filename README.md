@@ -9,6 +9,7 @@ A pessoa lê a carta **sem saber quem foi**, dá a sua opinião e só depois des
 ## O que tem no jogo
 
 - **Jogar:** escolha o tipo de carta (o que fizeram, o que disseram, o que prometem) e quantas quer ver (no mínimo 6, sendo 3 de cada candidato). Metade das cartas é de cada candidato.
+- **Ver todas as cartas:** a lista completa, sem os nomes, com busca e filtros. Você escolhe qual quer julgar; nada é sorteado.
 - **Duelo de ideias:** duas cartas do mesmo assunto, sem nomes. Toque na carta com a qual concorda mais.
 - **Promessas e projetos:** as 36 promessas de campanha de Lula acompanhadas pelo g1, os projetos de Flávio no Senado (autor ou coautor, com link oficial) e a lista de propostas dos dois planos de governo.
 - **Palavras difíceis:** explicação das siglas e termos, embaixo do texto, só para quem quiser.
