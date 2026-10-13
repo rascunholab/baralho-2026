@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
+  <meta name="build" content="2026-10-13 18:32">
   <meta name="referrer" content="no-referrer">
   <!-- CSP: sem rede, sem formulários, sem objetos. Único frame permitido: YouTube sem cookies (youtube-nocookie.com), carregado só depois de um clique. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-src https://www.youtube-nocookie.com; base-uri 'none'; form-action 'none'">
@@ -4515,6 +4516,13 @@ window.BARALHO_FOTOS = {
     ]);
   }
 
+  function textoVersao() {
+    var m = document.querySelector('meta[name="build"]');
+    var b = m ? m.getAttribute("content") : "";
+    if (!b || b.indexOf("2026-10-13 18:32") !== -1) { b = "desenvolvimento"; }
+    return "Versão: " + b + " · dados de " + D.versao;
+  }
+
   function telaInicio() {
     S.modo = null;
     var raiz = el("section", { class: "screen" }, [
@@ -4556,7 +4564,8 @@ window.BARALHO_FOTOS = {
         el("button", { class: "linkish", type: "button", onclick: janelaComoFunciona, text: "Como funciona" }),
         " · ",
         el("button", { class: "linkish", type: "button", onclick: janelaPalavras, text: "Palavras difíceis" })
-      ])
+      ]),
+      el("p", { class: "fine versao", text: textoVersao() })
     ]);
     if (V.erros.length) {
       raiz.insertBefore(el("div", { class: "errorbox", role: "alert" }, [el("strong", { text: "Problema nos dados do jogo: " }), V.erros.join(" · ")]), raiz.firstChild);
