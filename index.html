@@ -553,6 +553,37 @@ img, svg, iframe, video { max-width: 100%; }
 .rev-item { list-style: none; padding: 10px 0; border-bottom: 1px solid var(--line); }
 ul.promlist { padding: 0; margin: 0; }
 
+/* ---------- barra de continuar fixa no topo ---------- */
+.nextbar {
+  position: sticky; top: 8px; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; margin: 0 0 12px;
+  background: rgba(255, 253, 246, .97); border: 2px solid var(--line); border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .28);
+}
+.nextbar .num { font-weight: 800; color: var(--ink-soft); font-size: 15px; padding-left: 4px; }
+.nextbar .btn-primary { min-height: 46px; flex: 0 0 auto; }
+.stage > .nextbar { max-width: 760px; margin-left: auto; margin-right: auto; }
+
+/* ---------- duelo: tocar na carta ---------- */
+.dica-duelo { margin: 4px 0 8px; font-weight: 700; color: var(--ink-soft); }
+.duelextras { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.duelextras .btn { flex: 1 1 auto; }
+.duelpick {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: 0; border-radius: 16px; padding: 18px 14px 14px; background: transparent; color: inherit; font: inherit;
+}
+.duelpick:hover, .duelpick:focus-visible { background: rgba(212, 168, 58, .16); }
+.duelpick:active { transform: scale(.99); }
+.duelpick .dtext { display: block; font-family: var(--serif); font-size: clamp(19px, 5vw, 24px); line-height: 1.3; color: var(--ink); margin: 8px 0 12px; }
+.duelpick .dcta {
+  display: inline-block; font-size: 14px; font-weight: 800; padding: 8px 12px; border-radius: 999px;
+  background: var(--felt-800); color: var(--gold-soft);
+}
+.duelcard { padding: 6px 6px 10px; border-color: var(--line); }
+.duelcard:hover { border-color: var(--gold); }
+@media (hover: none) { .duelextras kbd, .duelpick kbd { display: none; } }
+
 /* ---------- celular (até 560 px) ---------- */
 @media (max-width: 560px) {
   .topbar { flex-wrap: wrap; padding-top: 12px; padding-bottom: 6px; gap: 6px; }
@@ -564,6 +595,12 @@ ul.promlist { padding: 0; margin: 0; }
   .duel { margin-top: 14px; gap: 8px; }
   .panel { padding: 16px 14px; }
   .btn { padding-left: 16px; padding-right: 16px; }
+  .app.compacto .topnav { display: none; }
+  .app.compacto .topbar { padding-bottom: 2px; }
+  .duelextras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .duelextras .btn { min-height: 54px; padding: 6px 4px; font-size: 13px; line-height: 1.15; text-align: center; flex: none; }
+  .dica-duelo { font-size: 14px; margin: 2px 0 8px; }
+  .duelpick { padding: 14px 12px 12px; }
   .nextrow { flex-wrap: wrap; gap: 10px; }
   .nextrow .btn { flex: 1 1 100%; }
   .stats { gap: 8px; }
@@ -4186,8 +4223,10 @@ window.BARALHO_FOTOS = {
   }
 
   /* ------------------------- montagem de tela ------------------------- */
-  function montar(node, focoSel) {
+  function montar(node, focoSel, compacto) {
     DU.ativo = false;
+    var raizApp = document.querySelector(".app");
+    if (raizApp) { if (compacto) { raizApp.classList.add("compacto"); } else { raizApp.classList.remove("compacto"); } }
     clear(app);
     app.appendChild(node);
     window.scrollTo(0, 0);
@@ -4674,7 +4713,7 @@ window.BARALHO_FOTOS = {
     ]);
     var card = cartaFrente(carta, zeroPad(S.i + 1), responder);
     var raiz = el("section", { class: "screen" }, [prog, el("div", { class: "stage" }, [card])]);
-    montar(raiz, "#pergunta");
+    montar(raiz, "#pergunta", true);
     anunciar("Carta " + (S.i + 1) + " de " + total + ": " + carta.texto);
   }
 
@@ -4685,18 +4724,33 @@ window.BARALHO_FOTOS = {
     var cardEl = document.getElementById("carta");
     S.resp.push({ carta: carta, v: v });
     var ultima = S.modo === "partida" && S.i === S.fila.length - 1;
+    /* Barra fixa no TOPO com o botão de continuar: quem leu a revelação não precisa
+       descer a página inteira para seguir. Há uma cópia no fim, para quem leu tudo. */
+    var sortear = function () { var pc = shuffle(D.cartas)[0]; jogarUma(pc.id); };
+    var textoTopo = S.modo === "partida" ? "Carta " + (S.i + 1) + " de " + S.fila.length : "Carta escolhida";
+    var rotuloProx = S.modo === "partida" ? (ultima ? "Ver meu resultado →" : "Próxima carta →") : "Sortear uma carta";
+    var acaoProx = S.modo === "partida" ? proxima : sortear;
+    var barra = el("div", { class: "nextbar", id: "barra-proxima" }, [
+      S.modo === "partida"
+        ? el("span", { class: "num", text: textoTopo })
+        : el("button", { class: "btn btn-light btn-sm", type: "button", text: "← Outra carta", onclick: telaEscolher }),
+      el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: rotuloProx, onclick: acaoProx })
+    ]);
+    var velha = document.getElementById("barra-proxima");
+    if (velha && velha.parentNode) { velha.parentNode.removeChild(velha); }
+    if (cardEl.parentNode) { cardEl.parentNode.insertBefore(barra, cardEl); }
     girar(cardEl, function (host) {
       host.appendChild(blocoRevelacao(carta, v, { mostrarFala: true }));
       var acoes;
       if (S.modo === "partida") {
         acoes = el("div", { class: "nextrow" }, [
           el("span"),
-          el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: ultima ? "Ver meu resultado →" : "Próxima carta →", onclick: proxima })
+          el("button", { class: "btn btn-primary", type: "button", text: rotuloProx, onclick: acaoProx })
         ]);
       } else {
         acoes = el("div", { class: "nextrow" }, [
           el("button", { class: "btn btn-light", type: "button", text: "← Escolher outra carta", onclick: telaEscolher }),
-          el("button", { class: "btn btn-primary", type: "button", id: "proxima", text: "Sortear uma carta", onclick: function () { var p = shuffle(D.cartas)[0]; jogarUma(p.id); } })
+          el("button", { class: "btn btn-primary", type: "button", text: "Sortear uma carta", onclick: sortear })
         ]);
       }
       host.appendChild(acoes);
@@ -4778,7 +4832,7 @@ window.BARALHO_FOTOS = {
       el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaEscolher, text: "← Voltar à lista" })]),
       el("div", { class: "stage" }, [card])
     ]);
-    montar(raiz, "#pergunta");
+    montar(raiz, "#pergunta", true);
     anunciar("Carta escolhida: " + carta.texto);
   }
 
@@ -4893,11 +4947,14 @@ window.BARALHO_FOTOS = {
     mostrarDuelo();
   }
 
-  function painelDuelo(letra, carta) {
+  function painelDuelo(letra, carta, aoEscolher) {
     return el("div", { class: "duelcard", id: "duelo-" + letra }, [
-      el("div", { class: "dl", "aria-hidden": "true", text: letra }),
-      el("p", { class: "dtag", text: "Opção " + letra }),
-      el("p", { class: "statement dstatement", text: carta.texto }),
+      el("button", { class: "duelpick", type: "button", onclick: aoEscolher,
+        "aria-label": "Concordo mais com a opção " + letra + ": " + carta.texto }, [
+        el("span", { class: "dl", "aria-hidden": "true", text: letra }),
+        el("span", { class: "dtext", text: carta.texto }),
+        el("span", { class: "dcta", "aria-hidden": "true", text: "Toque aqui se você concorda mais com esta" })
+      ]),
       blocoPalavras([carta.texto])
     ]);
   }
@@ -4931,55 +4988,68 @@ window.BARALHO_FOTOS = {
     var item = DU.fila[DU.i];
     var total = DU.fila.length;
     DU.respondida = false;
-    var areaResp = el("div", { class: "duelresp" });
-    var areaRev = el("div", { class: "duelreveal" });
-    function botao(v, rotulo, tecla, cls) {
-      return el("button", { class: "ans " + cls, type: "button", onclick: function () { responderDuelo(v, areaResp, areaRev); } },
+    function extra(v, rotulo, tecla) {
+      return el("button", { class: "btn btn-light btn-sm", type: "button", onclick: function () { responderDuelo(v); } },
         [rotulo + " ", el("kbd", { text: tecla })]);
     }
-    areaResp.appendChild(botao("A", "Concordo mais com A", "A", "good"));
-    areaResp.appendChild(botao("B", "Concordo mais com B", "B", "good"));
-    areaResp.appendChild(botao("duas", "Concordo com as duas", "D", "skip"));
-    areaResp.appendChild(botao("nenhuma", "Não concordo com nenhuma", "N", "bad"));
-    areaResp.appendChild(botao("nao", "Não sei", "S", "skip"));
+    var extras = el("div", { class: "duelextras", role: "group", "aria-label": "Outras respostas" }, [
+      extra("duas", "Concordo com as duas", "D"),
+      extra("nenhuma", "Não concordo com nenhuma", "N"),
+      extra("nao", "Não sei", "S")
+    ]);
+    var dica = el("p", { class: "dica-duelo", text: "Toque na carta com a qual você concorda mais. Ou escolha outra resposta:" });
+    var grade = el("div", { class: "duelgrid" }, [
+      painelDuelo("A", item.A, function () { responderDuelo("A"); }),
+      painelDuelo("B", item.B, function () { responderDuelo("B"); })
+    ]);
+    var titulo = el("h2", { id: "titulo", text: "Com qual você concorda mais?" });
     var raiz = el("section", { class: "screen" }, [
       el("div", { class: "back-link" }, [el("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: telaDueloInicio, text: "← Voltar" })]),
-      el("div", { class: "panel duelo" }, [
+      el("div", { class: "panel duelo", id: "painel-duelo" }, [
         el("div", { class: "progress", role: "status" }, [el("span", { text: "Duelo " + (DU.i + 1) + " de " + total })]),
         el("p", { class: "tema-duelo" }, [el("span", { class: "tag", text: "#" + item.d.titulo })]),
-        el("h2", { id: "titulo", text: "Com qual você concorda mais?" }),
-        el("div", { class: "duelgrid" }, [painelDuelo("A", item.A), painelDuelo("B", item.B)]),
-        areaResp,
-        areaRev
+        titulo,
+        dica,
+        extras,
+        grade
       ])
     ]);
-    montar(raiz, "#titulo");
+    DU.refs = { titulo: titulo, dica: dica, extras: extras, grade: grade };
+    montar(raiz, "#titulo", true);
     DU.ativo = true;
     anunciar("Duelo " + (DU.i + 1) + " de " + total + ". Assunto: " + item.d.titulo + ".");
   }
 
-  function responderDuelo(v, areaResp, areaRev) {
-    if (DU.respondida) { return; }
+  function responderDuelo(v) {
+    if (DU.respondida || !DU.refs) { return; }
     DU.respondida = true;
     var item = DU.fila[DU.i];
+    var R = DU.refs;
     DU.resp.push({ item: item, v: v });
-    clear(areaResp);
-    clear(areaRev);
     var ultimo = DU.i >= DU.fila.length - 1;
-    areaRev.appendChild(el("h3", { class: "sub-h", id: "quem-duelo", tabindex: "-1", text: "Quem é quem" }));
-    areaRev.appendChild(el("div", { class: "duelgrid" }, [
+    var ir = function () { if (ultimo) { telaDueloResultado(); } else { DU.i++; mostrarDuelo(); } };
+    /* a barra com o botão de continuar fica no TOPO e acompanha a rolagem */
+    var barra = el("div", { class: "nextbar" }, [
+      el("span", { class: "num", text: "Duelo " + (DU.i + 1) + " de " + DU.fila.length }),
+      el("button", { class: "btn btn-primary", type: "button", id: "proximo-duelo", text: ultimo ? "Ver resultado →" : "Próximo duelo →", onclick: ir })
+    ]);
+    var escolha = v === "A" ? "Você escolheu a opção A." : v === "B" ? "Você escolheu a opção B."
+      : v === "duas" ? "Você concordou com as duas." : v === "nenhuma" ? "Você não concordou com nenhuma." : "Você marcou “Não sei”.";
+    R.titulo.textContent = "Quem é quem";
+    R.dica.textContent = escolha;
+    if (R.extras.parentNode) { R.extras.parentNode.removeChild(R.extras); }
+    R.grade.parentNode.insertBefore(barra, R.dica);
+    clear(R.grade);
+    add(R.grade, [
       miniCarta(item.A, "A", v === "A" || v === "duas"),
       miniCarta(item.B, "B", v === "B" || v === "duas")
-    ]));
-    areaRev.appendChild(el("div", { class: "nextrow" }, [
-      el("span"),
-      el("button", { class: "btn btn-primary", type: "button", id: "proximo-duelo", text: ultimo ? "Ver resultado →" : "Próximo duelo →",
-        onclick: function () { if (ultimo) { telaDueloResultado(); } else { DU.i++; mostrarDuelo(); } } })
-    ]));
-    var h = document.getElementById("quem-duelo");
-    if (h) { h.focus({ preventScroll: false }); }
+    ]);
     var nome = function (c) { return D.candidatos[c.c].nome; };
-    anunciar("Opção A: " + nome(item.A) + ". Opção B: " + nome(item.B) + ".");
+    anunciar(escolha + " Opção A: " + nome(item.A) + ". Opção B: " + nome(item.B) + ".");
+    R.titulo.setAttribute("tabindex", "-1");
+    R.titulo.focus({ preventScroll: true });
+    var topo = document.getElementById("painel-duelo");
+    if (topo && topo.scrollIntoView) { topo.scrollIntoView({ block: "start" }); }
   }
 
   function telaDueloResultado() {
@@ -5430,9 +5500,9 @@ window.BARALHO_FOTOS = {
     var k = (e.key || "").toLowerCase();
     if (DU.ativo) {
       if (!DU.respondida) {
-        var map = { a: "A", b: "B", d: "duas", n: "nenhuma", s: "nao" };
-        if (map[k]) {
-          var alvo = document.querySelector(".duelresp .ans:nth-child(" + ({ A: 1, B: 2, duas: 3, nenhuma: 4, nao: 5 })[map[k]] + ")");
+        var alvos = { a: "#duelo-A .duelpick", b: "#duelo-B .duelpick", d: ".duelextras button:nth-child(1)", n: ".duelextras button:nth-child(2)", s: ".duelextras button:nth-child(3)" };
+        if (alvos[k]) {
+          var alvo = document.querySelector(alvos[k]);
           if (alvo) { alvo.click(); }
         }
       } else if (k === "enter" || k === "arrowright") {
